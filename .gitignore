@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Datos: pesados o sensibles. La carpeta sí se versiona (README.md).
+dataset/*
+!dataset/README.md
+
+# Tablas y graficos generados por main.py.
+results/*
+!results/README.md
+
+# Material exclusivo del profesor (solucion de referencia).
+docente/
+
+# Presentación del proyecto
+presentation/
+
