@@ -17,7 +17,15 @@ def labels_to_levels(labels: torch.Tensor, num_classes: int) -> torch.Tensor:
     - salida: (batch_size, num_classes - 1)
     """
 
-    raise NotImplementedError("TODO: implementar labels_to_levels().")
+    # Generar los niveles [1, 2, ..., K-1] en el mismo dispositivo que las etiquetas
+    levels = torch.arange(1, num_classes, device=labels.device)
+    
+    # Expandir labels a (batch_size, 1) para comparar con levels (K-1)
+    # y convertir el resultado booleano a float32
+    return (labels.unsqueeze(dim=1) >= levels).float()
+
+
+
 
 
 def coral_loss(
@@ -26,17 +34,21 @@ def coral_loss(
     num_classes: int,
     class_weights: torch.Tensor | None = None,
 ) -> torch.Tensor:
-    """
-    TODO(alumno):
-    BCE con logits sobre los K-1 umbrales ordinales.
-
-    Formas:
-    - logits: (batch_size, num_classes - 1)
-    - labels: (batch_size,)
-    - class_weights: (num_classes,) o None
-    """
-
-    raise NotImplementedError("TODO: implementar coral_loss().")
+    levels = labels_to_levels(labels, num_classes)
+    
+    # BCE individual sobre los K-1 umbrales sin reducción inmediata
+    bce = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits, levels, reduction="none"
+    )
+    
+    # Sumar los errores de los K-1 umbrales para cada muestra
+    loss = bce.sum(dim=1)
+    
+    # Ponderar por el peso de la clase respectiva si existe
+    if class_weights is not None:
+        loss = loss * class_weights[labels]
+        
+    return loss.mean()
 
 
 def effective_number_weights(
@@ -44,17 +56,12 @@ def effective_number_weights(
     num_classes: int,
     beta: float = 0.99,
 ) -> torch.Tensor:
-    """
-    TODO(alumno):
-    Pesos por numero efectivo de muestras:
-
-        w_c = (1 - beta) / (1 - beta ** n_c)
-
-    Normalizar los pesos para que su media sea 1.
-
-    Formas:
-    - labels: (N,)
-    - salida: (num_classes,)
-    """
-
-    raise NotImplementedError("TODO: implementar effective_number_weights().")
+    counts = np.bincount(labels, minlength=num_classes)
+    counts = np.maximum(counts, 1.0) # Prevenir división por cero
+    
+    # Fórmula w_c = (1 - beta) / (1 - beta ** n_c)
+    weights = (1.0 - beta) / (1.0 - np.power(beta, counts))
+    
+    # Normalizar para que la media sea 1
+    weights = weights / np.mean(weights)
+    return torch.tensor(weights, dtype=torch.float32)

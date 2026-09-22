@@ -3,12 +3,13 @@
 import torch
 
 
+"""
 @torch.no_grad()
 def logits_to_ordinal_predictions(
     logits: torch.Tensor,
     threshold: float = 0.5,
 ) -> torch.Tensor:
-    """
+    
     TODO(alumno):
     Convierte logits CORAL en una clase entera.
 
@@ -19,6 +20,16 @@ def logits_to_ordinal_predictions(
     Formas:
     - logits: (batch_size, K-1)
     - salida: (batch_size,)
-    """
 
     raise NotImplementedError("TODO: implementar logits_to_ordinal_predictions().")
+"""
+
+@torch.no_grad()
+def logits_to_ordinal_predictions(
+    logits: torch.Tensor,
+    threshold: float = 0.5,
+) -> torch.Tensor:
+    probs = torch.sigmoid(logits)
+    # Contar cuántas condiciones binarias son verdaderas
+    return (probs > threshold).long().sum(dim=1)
+

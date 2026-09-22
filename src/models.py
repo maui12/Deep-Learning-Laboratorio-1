@@ -40,46 +40,35 @@ class ShallowMultiClassNet(nn.Module):
 
 
 class CoralLayer(nn.Module):
-    """
-    TODO(alumno):
-    Capa de salida CORAL.
-
-    Debe producir K-1 logits acumulativos a partir de un vector de
-    caracteristicas de tamano input_size.
-
-    Pistas:
-    - un peso lineal compartido hacia un unico puntaje latente,
-    - K-1 sesgos ordenados,
-    - las diferencias entre sesgos pueden construirse con softplus y cumsum
-      para forzar b0 >= b1 >= ... >= b_{K-2}.
-
-    Formas esperadas:
-    - x: (batch_size, input_size)
-    - salida: (batch_size, num_classes - 1)
-    """
-
     def __init__(self, input_size: int, num_classes: int) -> None:
         super().__init__()
         self.input_size = input_size
         self.num_classes = num_classes
+        
+        # Un peso lineal compartido hacia un único puntaje latente
+        self.fc = nn.Linear(input_size, 1, bias=False)
+        
+        # Sesgos ordenados
+        self.bias_first = nn.Parameter(torch.zeros(1))
+        if num_classes > 2:
+            self.bias_diffs = nn.Parameter(torch.zeros(num_classes - 2))
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("TODO: implementar CoralLayer.forward().")
+        score = self.fc(inputs) # (batch_size, 1)
+        
+        if self.num_classes == 2:
+            return score + self.bias_first
+            
+        # Diferencias positivas usando softplus
+        diffs = torch.nn.functional.softplus(self.bias_diffs)
+        # Forzar orden decreciente: b_k = b_{k-1} - diff_k
+        biases = torch.cat([self.bias_first, self.bias_first - torch.cumsum(diffs, dim=0)])
+        
+        # (batch_size, K-1) por broadcasting
+        return score + biases
 
 
 class MLPCoral(nn.Module):
-    """
-    TODO(alumno):
-    MLP ordinal poco profunda con cabeza CORAL.
-
-    Arquitectura sugerida:
-    15 -> Linear(32) -> ReLU -> BatchNorm1d -> Dropout
-       -> Linear(16) -> ReLU
-       -> CoralLayer(16, K)
-
-    El forward debe devolver logits de forma (batch_size, K-1).
-    """
-
     def __init__(
         self,
         num_features: int,
@@ -91,5 +80,17 @@ class MLPCoral(nn.Module):
         self.num_classes = num_classes
         self.dropout = dropout
 
+        # Arquitectura sugerida: 15 -> Linear(32) -> ReLU -> BatchNorm1d -> Dropout -> Linear(16) -> ReLU
+        self.features = nn.Sequential(
+            nn.Linear(num_features, 32),
+            nn.ReLU(),
+            nn.BatchNorm1d(32),
+            nn.Dropout(dropout),
+            nn.Linear(32, 16),
+            nn.ReLU()
+        )
+        self.coral = CoralLayer(16, num_classes)
+
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        raise NotImplementedError("TODO: implementar MLPCoral.forward().")
+        hidden = self.features(inputs)
+        return self.coral(hidden)
