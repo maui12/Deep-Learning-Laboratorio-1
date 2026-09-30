@@ -5,9 +5,6 @@ __pycache__/
 .venv/
 venv/
 
-# Datos: pesados o sensibles. La carpeta sí se versiona (README.md).
-dataset/*
-!dataset/README.md
 
 # Tablas y graficos generados por main.py.
 results/*

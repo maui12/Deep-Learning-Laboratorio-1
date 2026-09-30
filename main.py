@@ -338,6 +338,10 @@ def train_one_experiment(
                 f"no admite {inner_folds} folds internos estratificados "
                 "(clase rara). Se omite la validacion interna en este fold."
             )
+
+            inner_mae_scores = []
+            inner_qwk_scores = []
+
             best_config = {
                 "hidden_dim": hidden_dim,
                 "dropout": dropout,

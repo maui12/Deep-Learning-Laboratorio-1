@@ -51,29 +51,46 @@ MINIMIZE_METRICS = ("mae_ordinal", "errores_graves")
 # Seleccionar la configuracion con menor MAE interno (empate: mayor QWK).
 # No usar el fold externo para elegir hiperparametros.
 # Para CORAL, incluir tambien "beta" en cada diccionario.
+
 HYPERPARAMETER_GRID = [
+    # 1. Configuración base
     {
         "hidden_dim": 32,
         "dropout": 0.15,
         "learning_rate": 1e-3,
         "weight_decay": 1e-4,
+        "beta": 0.99,
     },
+    # 2. Mayor capacidad de red y mayor dropout (ayuda a generalizar)
+    {
+        "hidden_dim": 64,
+        "dropout": 0.30,
+        "learning_rate": 1e-3,
+        "weight_decay": 1e-4,
+        "beta": 0.99,
+    },
+    # 3. Red más densa con regularización agresiva y aprendizaje lento
+    {
+        "hidden_dim": 128,
+        "dropout": 0.40,
+        "learning_rate": 5e-4,
+        "weight_decay": 1e-3,
+        "beta": 0.999,
+    },
+    # 4. Capacidad media con beta en 0.9 para probar otro umbral de desbalance
     {
         "hidden_dim": 64,
         "dropout": 0.15,
-        "learning_rate": 1e-3,
+        "learning_rate": 5e-4,
         "weight_decay": 1e-4,
+        "beta": 0.90,
     },
+    # 5. Red pequeña pero fuertemente regularizada
     {
         "hidden_dim": 32,
         "dropout": 0.30,
         "learning_rate": 1e-3,
-        "weight_decay": 1e-4,
-    },
-    {
-        "hidden_dim": 32,
-        "dropout": 0.15,
-        "learning_rate": 5e-4,
-        "weight_decay": 1e-4,
+        "weight_decay": 1e-3,
+        "beta": 0.999,
     },
 ]
